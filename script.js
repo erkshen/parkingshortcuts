@@ -28,7 +28,7 @@ function generateWord() {
     let blob = new Blob(["\ufeff" + docContent], { type: "application/msword" });
 
     // Generate a URL for the blob
-    let url = window.URL.createObjectURL(blob);
+    let url = URL.createObjectURL(blob);
 
     // Create a temporary download link
     let link = document.createElement("a");
@@ -39,9 +39,9 @@ function generateWord() {
     document.body.appendChild(link);
     link.click();
 
-    // Cleanup: Remove the link and revoke the Blob URL after a delay
+    // Cleanup: Remove the link and revoke the Blob URL after a short delay
     setTimeout(() => {
         document.body.removeChild(link);
-        window.URL.revokeObjectURL(url);
+        URL.revokeObjectURL(url);
     }, 100);
 }
