@@ -17,9 +17,9 @@ async function generateWord() {
 
     // Placeholder names for first column
     const placeholders = [
-        "Name", "Department", "Location", "Store ID", "Sales Amount",
-        "Date", "Product ID", "Product Name", "Brand", "Unit Cost",
-        "Quantity Sold", "Sale Price", "Discount", "Category", "Region"
+        "Description", "Entry Date and Time", "Entry Gate", "Exit Date and Time", "Exit Gate",
+        "Fee Due", "Paid Amount", "Repeat Offender", "Report Author", "Supporting Images",
+        "Name", "Vehicle Details", "Contact", "Store Name"
     ];
 
     // Ensure placeholders cover all fields
