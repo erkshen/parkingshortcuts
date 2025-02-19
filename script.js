@@ -1,4 +1,9 @@
 async function generateWord() {
+    if (!window.docx) {
+        alert("docx library failed to load.");
+        return;
+    }
+    
     let inputData = document.getElementById("excelData").value.trim();
     let author = document.getElementById("author").value.trim() || "Unknown Author";
     let imageElement = document.getElementById("previewImage");
@@ -32,7 +37,7 @@ async function generateWord() {
     let lastFourRows = rowData.slice(-4);
 
     // Import docx library
-    const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, ImageRun } = docx;
+    const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, ImageRun } = window.docx;
 
     // Function to create a table row
     function createRow(label, value) {
@@ -81,13 +86,13 @@ async function generateWord() {
         sections: [
             {
                 children: [
-                    new Paragraph({ text: "Main Data", heading: docx.HeadingLevel.HEADING_2 }),
+                    new Paragraph({ text: "Main Data", heading: window.docx.HeadingLevel.HEADING_2 }),
                     new Table({
                         rows: tableRows,
                         width: { size: 100, type: WidthType.PERCENTAGE }
                     }),
                     new Paragraph({ text: " " }), // Spacer
-                    new Paragraph({ text: "Additional Information", heading: docx.HeadingLevel.HEADING_2 }),
+                    new Paragraph({ text: "Additional Information", heading: window.docx.HeadingLevel.HEADING_2 }),
                     new Table({
                         rows: additionalTableRows,
                         width: { size: 100, type: WidthType.PERCENTAGE }
