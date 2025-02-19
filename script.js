@@ -9,6 +9,12 @@ function generateWord() {
     // Split input by tab (Excel uses tabs when copying multiple cells)
     let rowData = inputData.split("\t");
 
+    // Set filename based on first cell (sanitize to remove special characters)
+    let fileName = rowData[0].replace(/[^a-zA-Z0-9]/g, "_") || "ExcelRowTable";
+    
+    // Generate the alphabet column (A-Z)
+    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    
     // Create an HTML structure for the Word document
     let docContent = `<!DOCTYPE html>
         <html xmlns:o="urn:schemas-microsoft-com:office:office"
@@ -18,8 +24,21 @@ function generateWord() {
         <body>
             <table border="1" style="border-collapse: collapse; width: 100%;">
                 <tr>
-                    ${rowData.map(cell => `<td style="padding: 8px; border: 1px solid black;">${cell}</td>`).join("")}
-                </tr>
+                    <th style="padding: 8px; border: 1px solid black;">Letter</th>
+                    <th style="padding: 8px; border: 1px solid black;">Data</th>
+                </tr>`;
+
+    // Populate table with alphabet letters and corresponding Excel data
+    for (let i = 0; i < rowData.length; i++) {
+        let letter = alphabet[i] || `Extra${i+1}`; // Fallback for >26 columns
+        docContent += `
+                <tr>
+                    <td style="padding: 8px; border: 1px solid black;">${letter}</td>
+                    <td style="padding: 8px; border: 1px solid black;">${rowData[i]}</td>
+                </tr>`;
+    }
+
+    docContent += `
             </table>
         </body>
         </html>`;
@@ -33,7 +52,7 @@ function generateWord() {
     // Create a temporary download link
     let link = document.createElement("a");
     link.href = url;
-    link.download = "ExcelRowTable.doc";
+    link.download = `${fileName}.doc`;
 
     // Append to document and trigger click
     document.body.appendChild(link);
