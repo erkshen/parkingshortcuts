@@ -22,24 +22,25 @@ function generateWord() {
         "Quantity Sold", "Sale Price", "Discount", "Category", "Region"
     ];
 
-    // If data has more fields than placeholders, generate additional placeholders
+    // Ensure placeholders cover all fields
     while (placeholders.length < rowData.length) {
         placeholders.push(`Field ${placeholders.length + 1}`);
     }
 
-    // Separate the last 4 rows
+    // Separate last 4 rows
     let mainTableRows = rowData.slice(0, -4);
     let lastFourRows = rowData.slice(-4);
 
     // Create HTML content for the Word document
-    let docContent = `<!DOCTYPE html>
+    let docContent = `
         <html xmlns:o="urn:schemas-microsoft-com:office:office"
               xmlns:w="urn:schemas-microsoft-com:office:word"
               xmlns="http://www.w3.org/TR/REC-html40">
         <head><meta charset="utf-8"></head>
         <body>
             <h3>Author: ${author}</h3>
-
+            
+            <h3>Main Data</h3>
             <table border="1" style="border-collapse: collapse; width: 100%;">
                 <tr>
                     <th style="padding: 8px; border: 1px solid black;">Field</th>
@@ -65,12 +66,12 @@ function generateWord() {
                 <tr>
                     <td style="padding: 8px; border: 1px solid black;">Uploaded Image</td>
                     <td style="padding: 8px; border: 1px solid black;">
-                        <img src="${imageSrc}" style="max-width: 300px; max-height: 150px;">
+                        <img src="${imageSrc}" width="300">
                     </td>
                 </tr>`;
     }
 
-    docContent += `</table><br><br>`;
+    docContent += `</table>`;
 
     // Add separate table for last 4 rows
     if (lastFourRows.length > 0) {
