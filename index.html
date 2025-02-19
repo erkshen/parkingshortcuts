@@ -1,7 +1,26 @@
-<h1>Automatic HRM incident report generator from Excel autofill</h1>
-
-<form>
-  <label for="exceldata">Paste Excel data:</label><br>
-  <input type="text" id="exceldata" name="exceldata"><br>
-  <input type="submit" value="Submit">
-</form>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel to Word</title>
+    <script defer src="script.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        textarea {
+            width: 80%;
+            height: 100px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Paste Excel Row and Generate Word Document</h1>
+    <textarea id="excelInput" placeholder="Paste Excel row data here..."></textarea><br>
+    <button onclick="generateWordDoc()">Generate Word Document</button>
+</body>
+</html>
