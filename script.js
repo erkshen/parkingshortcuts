@@ -1,5 +1,6 @@
 function generateWord() {
     let inputData = document.getElementById("excelData").value.trim();
+    let author = document.getElementById("author").value.trim() || "Unknown Author";
 
     if (!inputData) {
         alert("Please paste some data first.");
@@ -11,10 +12,19 @@ function generateWord() {
 
     // Set filename based on first cell (sanitize to remove special characters)
     let fileName = rowData[0].replace(/[^a-zA-Z0-9]/g, "_") || "ExcelRowTable";
-    
-    // Generate the alphabet column (A-Z)
-    const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    
+
+    // Placeholder names for first column
+    const placeholders = [
+        "Name", "Department", "Location", "Store ID", "Sales Amount",
+        "Date", "Product ID", "Product Name", "Brand", "Unit Cost",
+        "Quantity Sold", "Sale Price", "Discount", "Category", "Region"
+    ];
+
+    // If data has more fields than placeholders, generate additional placeholders
+    while (placeholders.length < rowData.length) {
+        placeholders.push(`Field ${placeholders.length + 1}`);
+    }
+
     // Create an HTML structure for the Word document
     let docContent = `<!DOCTYPE html>
         <html xmlns:o="urn:schemas-microsoft-com:office:office"
@@ -22,18 +32,25 @@ function generateWord() {
               xmlns="http://www.w3.org/TR/REC-html40">
         <head><meta charset="utf-8"></head>
         <body>
+            <h3>Author: ${author}</h3>
             <table border="1" style="border-collapse: collapse; width: 100%;">
                 <tr>
-                    <th style="padding: 8px; border: 1px solid black;">Letter</th>
+                    <th style="padding: 8px; border: 1px solid black;">Field</th>
                     <th style="padding: 8px; border: 1px solid black;">Data</th>
                 </tr>`;
 
-    // Populate table with alphabet letters and corresponding Excel data
+    // Add author information row
+    docContent += `
+                <tr>
+                    <td style="padding: 8px; border: 1px solid black;">Author</td>
+                    <td style="padding: 8px; border: 1px solid black;">${author}</td>
+                </tr>`;
+
+    // Populate table with placeholder names and corresponding Excel data
     for (let i = 0; i < rowData.length; i++) {
-        let letter = alphabet[i] || `Extra${i+1}`; // Fallback for >26 columns
         docContent += `
                 <tr>
-                    <td style="padding: 8px; border: 1px solid black;">${letter}</td>
+                    <td style="padding: 8px; border: 1px solid black;">${placeholders[i]}</td>
                     <td style="padding: 8px; border: 1px solid black;">${rowData[i]}</td>
                 </tr>`;
     }
