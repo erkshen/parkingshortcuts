@@ -1,8 +1,8 @@
-function generateWord() {
+async function generateWord() {
     let inputData = document.getElementById("excelData").value.trim();
     let author = document.getElementById("author").value.trim() || "Unknown Author";
     let imageElement = document.getElementById("previewImage");
-    let imageSrc = imageElement.src || null;
+    let imageFile = document.getElementById("imageUpload").files[0];
 
     if (!inputData) {
         alert("Please paste some data first.");
@@ -12,7 +12,7 @@ function generateWord() {
     // Split input by tab (Excel uses tabs when copying multiple cells)
     let rowData = inputData.split("\t");
 
-    // Set filename based on first cell (sanitize to remove special characters)
+    // Set filename based on first cell
     let fileName = rowData[0].replace(/[^a-zA-Z0-9]/g, "_") || "ExcelRowTable";
 
     // Placeholder names for first column
@@ -31,90 +31,90 @@ function generateWord() {
     let mainTableRows = rowData.slice(0, -4);
     let lastFourRows = rowData.slice(-4);
 
-    // Create HTML content for the Word document
-    let docContent = `
-        <html xmlns:o="urn:schemas-microsoft-com:office:office"
-              xmlns:w="urn:schemas-microsoft-com:office:word"
-              xmlns="http://www.w3.org/TR/REC-html40">
-        <head><meta charset="utf-8"></head>
-        <body>
-            <h3>Author: ${author}</h3>
-            
-            <h3>Main Data</h3>
-            <table border="1" style="border-collapse: collapse; width: 100%;">
-                <tr>
-                    <th style="padding: 8px; border: 1px solid black;">Field</th>
-                    <th style="padding: 8px; border: 1px solid black;">Data</th>
-                </tr>
-                <tr>
-                    <td style="padding: 8px; border: 1px solid black;">Author</td>
-                    <td style="padding: 8px; border: 1px solid black;">${author}</td>
-                </tr>`;
+    // Import docx library
+    const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, ImageRun } = docx;
 
-    // Add main table rows
-    for (let i = 0; i < mainTableRows.length; i++) {
-        docContent += `
-                <tr>
-                    <td style="padding: 8px; border: 1px solid black;">${placeholders[i]}</td>
-                    <td style="padding: 8px; border: 1px solid black;">${mainTableRows[i]}</td>
-                </tr>`;
+    // Function to create a table row
+    function createRow(label, value) {
+        return new TableRow({
+            children: [
+                new TableCell({
+                    children: [new Paragraph(label)],
+                    width: { size: 40, type: WidthType.PERCENTAGE }
+                }),
+                new TableCell({
+                    children: [new Paragraph(value)],
+                    width: { size: 60, type: WidthType.PERCENTAGE }
+                })
+            ]
+        });
     }
 
-    // Add image row if an image is uploaded
-    if (imageSrc) {
-        docContent += `
-                <tr>
-                    <td style="padding: 8px; border: 1px solid black;">Uploaded Image</td>
-                    <td style="padding: 8px; border: 1px solid black;">
-                        <img src="${imageSrc}" width="300">
-                    </td>
-                </tr>`;
+    // Create main table rows
+    let tableRows = [
+        createRow("Author", author),
+        ...mainTableRows.map((data, index) => createRow(placeholders[index], data))
+    ];
+
+    // Load image as base64 if provided
+    let imageBase64 = null;
+    if (imageFile) {
+        imageBase64 = await toBase64(imageFile);
+        tableRows.push(new TableRow({
+            children: [
+                new TableCell({ children: [new Paragraph("Uploaded Image")] }),
+                new TableCell({
+                    children: [new Paragraph(" "), new ImageRun({
+                        data: imageBase64,
+                        transformation: { width: 300, height: 150 }
+                    })]
+                })
+            ]
+        }));
     }
 
-    docContent += `</table>`;
+    // Create the additional table for last 4 rows
+    let additionalTableRows = lastFourRows.map((data, index) => createRow(placeholders[mainTableRows.length + index], data));
 
-    // Add separate table for last 4 rows
-    if (lastFourRows.length > 0) {
-        docContent += `
-            <h3>Additional Information</h3>
-            <table border="1" style="border-collapse: collapse; width: 100%;">
-                <tr>
-                    <th style="padding: 8px; border: 1px solid black;">Field</th>
-                    <th style="padding: 8px; border: 1px solid black;">Data</th>
-                </tr>`;
+    // Create the document
+    const doc = new Document({
+        sections: [
+            {
+                children: [
+                    new Paragraph({ text: "Main Data", heading: docx.HeadingLevel.HEADING_2 }),
+                    new Table({
+                        rows: tableRows,
+                        width: { size: 100, type: WidthType.PERCENTAGE }
+                    }),
+                    new Paragraph({ text: " " }), // Spacer
+                    new Paragraph({ text: "Additional Information", heading: docx.HeadingLevel.HEADING_2 }),
+                    new Table({
+                        rows: additionalTableRows,
+                        width: { size: 100, type: WidthType.PERCENTAGE }
+                    })
+                ]
+            }
+        ]
+    });
 
-        for (let i = 0; i < lastFourRows.length; i++) {
-            let index = mainTableRows.length + i;
-            docContent += `
-                <tr>
-                    <td style="padding: 8px; border: 1px solid black;">${placeholders[index]}</td>
-                    <td style="padding: 8px; border: 1px solid black;">${lastFourRows[i]}</td>
-                </tr>`;
-        }
-
-        docContent += `</table>`;
-    }
-
-    docContent += `</body></html>`;
-
-    // Create a Blob object with proper MIME type
-    let blob = new Blob(["\ufeff" + docContent], { type: "application/msword" });
-
-    // Generate a URL for the blob
-    let url = URL.createObjectURL(blob);
-
-    // Create a temporary download link
-    let link = document.createElement("a");
-    link.href = url;
-    link.download = `${fileName}.doc`;
-
-    // Append to document and trigger click
-    document.body.appendChild(link);
-    link.click();
-
-    // Cleanup
-    setTimeout(() => {
+    // Generate and download the document
+    Packer.toBlob(doc).then(blob => {
+        let url = URL.createObjectURL(blob);
+        let link = document.createElement("a");
+        link.href = url;
+        link.download = `${fileName}.docx`;
+        document.body.appendChild(link);
+        link.click();
         document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    }, 100);
+    });
+}
+
+// Convert image file to base64
+function toBase64(file) {
+    return new Promise((resolve, reject) => {
+        let reader = new FileReader();
+        reader.readAsArrayBuffer(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+    });
 }
