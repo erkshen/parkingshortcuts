@@ -7,12 +7,13 @@
     <script src="script.js" defer></script>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; margin: 50px; }
-        textarea { width: 80%; height: 100px; margin: 10px; }
+        textarea, input { width: 80%; margin: 10px; padding: 8px; font-size: 16px; }
         button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
     </style>
 </head>
 <body>
     <h2>Paste Excel Row Data</h2>
+    <input type="text" id="author" placeholder="Enter Document Author"><br>
     <textarea id="excelData" placeholder="Paste copied Excel row here..."></textarea><br>
     <button onclick="generateWord()">Generate Word Document</button>
 </body>
