@@ -3,24 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Excel to Word</title>
-    <script defer src="script.js"></script>
+    <title>Excel to Word Table</title>
+    <script src="script.js" defer></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            text-align: center;
-            margin: 50px;
-        }
-        textarea {
-            width: 80%;
-            height: 100px;
-            margin-bottom: 20px;
-        }
+        body { font-family: Arial, sans-serif; text-align: center; margin: 50px; }
+        textarea { width: 80%; height: 100px; margin: 10px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; }
     </style>
 </head>
 <body>
-    <h1>Paste Excel Row and Generate Word Document</h1>
-    <textarea id="excelInput" placeholder="Paste Excel row data here..."></textarea><br>
-    <button onclick="generateWordDoc()">Generate Word Document</button>
+    <h2>Paste Excel Row Data</h2>
+    <textarea id="excelData" placeholder="Paste copied Excel row here..."></textarea><br>
+    <button onclick="generateWord()">Generate Word Document</button>
 </body>
 </html>
