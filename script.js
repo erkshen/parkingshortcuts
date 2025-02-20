@@ -11,65 +11,63 @@ async function generateWord() {
     let rowData = inputData.split("\t");
     let fileName = rowData[0].replace(/[^a-zA-Z0-9]/g, "_") || "High_Risk_Manoeuvre_Report";
 
-    const placeholders = [
-        "Property", "Description", "Date & Time of Entry", "Entry Gate",
-        "Date & Time of Exit", "Exit Gate", "Parking Fee", "Parking Fee Paid",
-        "Serial Offender", "Report Author", "Photographs/ CCTV Footage",
-        "Offender Name", "Contact Details", "Vehicle Details", "Store Name"
-    ];
+    // Define placeholders in the template that will be replaced
+    const placeholders = {
+        "{{PROPERTY}}": rowData[0] || "N/A",
+        "{{DESCRIPTION}}": rowData[1] || "N/A",
+        "{{DATE_TIME_ENTRY}}": rowData[2] || "N/A",
+        "{{ENTRY_GATE}}": rowData[3] || "N/A",
+        "{{DATE_TIME_EXIT}}": rowData[4] || "N/A",
+        "{{EXIT_GATE}}": rowData[5] || "N/A",
+        "{{PARKING_FEE}}": rowData[6] || "N/A",
+        "{{PARKING_FEE_PAID}}": rowData[7] || "N/A",
+        "{{SERIAL_OFFENDER}}": rowData[8] || "N/A",
+        "{{REPORT_AUTHOR}}": author,
+        "{{OFFENDER_NAME}}": rowData[9] || "N/A",
+        "{{CONTACT_DETAILS}}": rowData[10] || "N/A",
+        "{{VEHICLE_DETAILS}}": rowData[11] || "N/A",
+        "{{STORE_NAME}}": rowData[12] || "N/A"
+    };
 
-    while (placeholders.length < rowData.length) {
-        placeholders.push(`Field ${placeholders.length + 1}`);
-    }
+    // Load the .docx template
+    let response = await fetch("High Risk Manoeuvre Template.docx");
+    let blob = await response.blob();
+    let zip = await JSZip.loadAsync(blob);
 
-    let tableHTML = `<table border="1" style="width: 100%; border-collapse: collapse;">`;
+    // Read document.xml (which contains the text content)
+    let docXml = await zip.file("word/document.xml").async("string");
 
-    for (let i = 0; i < rowData.length; i++) {
-        tableHTML += `
-            <tr>
-                <td style="padding: 8px; border: 1px solid black; font-weight: bold;">${placeholders[i]}</td>
-                <td style="padding: 8px; border: 1px solid black;">${rowData[i]}</td>
-            </tr>`;
-    }
+    // Replace placeholders with actual values
+    Object.keys(placeholders).forEach(key => {
+        docXml = docXml.replace(new RegExp(key, "g"), placeholders[key]);
+    });
 
-    // If an image is uploaded, include it
+    // Save back the modified XML
+    zip.file("word/document.xml", docXml);
+
+    // If an image is uploaded, embed it in the document
     if (imageFile) {
         let imageBase64 = await toBase64(imageFile);
-        tableHTML += `
-            <tr>
-                <td style="padding: 8px; border: 1px solid black; font-weight: bold;">Uploaded Image</td>
-                <td style="padding: 8px; border: 1px solid black;">
-                    <img src="${imageBase64}" width="300">
-                </td>
-            </tr>`;
+        let imgData = imageBase64.split(",")[1]; // Remove the data type prefix
+
+        // Save the image inside the .docx
+        zip.file("word/media/image1.png", imgData, { base64: true });
     }
 
-    tableHTML += `</table>`;
+    // Generate the new .docx file
+    let modifiedBlob = await zip.generateAsync({ type: "blob" });
+    let downloadUrl = URL.createObjectURL(modifiedBlob);
 
-    let docContent = `
-        <html xmlns:o="urn:schemas-microsoft-com:office:office"
-              xmlns:w="urn:schemas-microsoft-com:office:word"
-              xmlns="http://www.w3.org/TR/REC-html40">
-        <head><meta charset="utf-8"></head>
-        <body>
-            <h2 style="text-align: center;">HIGH RISK MANOEUVRE REPORT</h2>
-            <h3>Author: ${author}</h3>
-            ${tableHTML}
-        </body>
-        </html>`;
-
-    let blob = new Blob(["\ufeff" + docContent], { type: "application/msword" });
-    let url = URL.createObjectURL(blob);
-
+    // Create download link
     let link = document.createElement("a");
-    link.href = url;
-    link.download = `${fileName}.doc`;
+    link.href = downloadUrl;
+    link.download = `${fileName}.docx`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
 }
 
-// Convert image file to base64
+// Convert image file to Base64
 function toBase64(file) {
     return new Promise((resolve, reject) => {
         let reader = new FileReader();
