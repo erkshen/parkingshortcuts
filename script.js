@@ -22,59 +22,58 @@ async function generateWord() {
         placeholders.push(`Field ${placeholders.length + 1}`);
     }
 
-    const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, ImageRun } = window.docx;
+    let tableHTML = `<table border="1" style="width: 100%; border-collapse: collapse;">`;
 
-    function createRow(label, value) {
-        return new TableRow({
-            children: [
-                new TableCell({ children: [new Paragraph(label)] }),
-                new TableCell({ children: [new Paragraph(value)] })
-            ]
-        });
+    for (let i = 0; i < rowData.length; i++) {
+        tableHTML += `
+            <tr>
+                <td style="padding: 8px; border: 1px solid black; font-weight: bold;">${placeholders[i]}</td>
+                <td style="padding: 8px; border: 1px solid black;">${rowData[i]}</td>
+            </tr>`;
     }
 
-    let tableRows = rowData.map((data, index) => createRow(placeholders[index], data));
-
-    let imageBase64 = null;
+    // If an image is uploaded, include it
     if (imageFile) {
-        imageBase64 = await toBase64(imageFile);
-        tableRows.push(new TableRow({
-            children: [
-                new TableCell({ children: [new Paragraph("Uploaded Image")] }),
-                new TableCell({
-                    children: [new ImageRun({
-                        data: imageBase64,
-                        transformation: { width: 300, height: 150 }
-                    })]
-                })
-            ]
-        }));
+        let imageBase64 = await toBase64(imageFile);
+        tableHTML += `
+            <tr>
+                <td style="padding: 8px; border: 1px solid black; font-weight: bold;">Uploaded Image</td>
+                <td style="padding: 8px; border: 1px solid black;">
+                    <img src="${imageBase64}" width="300">
+                </td>
+            </tr>`;
     }
 
-    const doc = new Document({
-        sections: [{
-            children: [
-                new Paragraph({ text: "HIGH RISK MANOEUVRE REPORT", heading: window.docx.HeadingLevel.HEADING_1 }),
-                new Table({ rows: tableRows })
-            ]
-        }]
-    });
+    tableHTML += `</table>`;
 
-    Packer.toBlob(doc).then(blob => {
-        let url = URL.createObjectURL(blob);
-        let link = document.createElement("a");
-        link.href = url;
-        link.download = `${fileName}.docx`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-    });
+    let docContent = `
+        <html xmlns:o="urn:schemas-microsoft-com:office:office"
+              xmlns:w="urn:schemas-microsoft-com:office:word"
+              xmlns="http://www.w3.org/TR/REC-html40">
+        <head><meta charset="utf-8"></head>
+        <body>
+            <h2 style="text-align: center;">HIGH RISK MANOEUVRE REPORT</h2>
+            <h3>Author: ${author}</h3>
+            ${tableHTML}
+        </body>
+        </html>`;
+
+    let blob = new Blob(["\ufeff" + docContent], { type: "application/msword" });
+    let url = URL.createObjectURL(blob);
+
+    let link = document.createElement("a");
+    link.href = url;
+    link.download = `${fileName}.doc`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
 
+// Convert image file to base64
 function toBase64(file) {
     return new Promise((resolve, reject) => {
         let reader = new FileReader();
-        reader.readAsArrayBuffer(file);
+        reader.readAsDataURL(file);
         reader.onload = () => resolve(reader.result);
         reader.onerror = error => reject(error);
     });
