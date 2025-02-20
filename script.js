@@ -11,7 +11,7 @@ async function generateWord() {
     let rowData = inputData.split("\t");
     let fileName = rowData[0].replace(/[^a-zA-Z0-9]/g, "_") || "High_Risk_Manoeuvre_Report";
 
-    // Placeholder mappings for template replacement
+    // Define placeholders that will be replaced in the document
     const placeholders = {
         "{{PROPERTY}}": rowData[0] || "N/A",
         "{{DESCRIPTION}}": rowData[1] || "N/A",
@@ -34,55 +34,60 @@ async function generateWord() {
     let blob = await response.blob();
     let zip = await JSZip.loadAsync(blob);
 
-    // Read document.xml (main text content inside the .docx)
+    // Read the document.xml file
     let docXml = await zip.file("word/document.xml").async("string");
 
-    // **Correctly replace placeholders inside Word's `<w:t>` elements**
+    // Ensure replacements are within `<w:t>` tags correctly
     Object.keys(placeholders).forEach(key => {
-        let safeKey = key.replace(/[\{\}]/g, ""); // Remove curly braces in XML searches
-        let regex = new RegExp(`<w:t>\\s*${safeKey}\\s*</w:t>`, "g"); // Match full `<w:t>` blocks
-        docXml = docXml.replace(regex, `<w:t>${placeholders[key]}</w:t>`);
+        let safeKey = key.replace(/[\{\}]/g, "");
+        let regex = new RegExp(`(<w:t>\\s*)${safeKey}(\\s*</w:t>)`, "g");
+        docXml = docXml.replace(regex, `$1${placeholders[key]}$2`);
     });
 
-    // **Save modified document.xml back to the .docx**
+    // Save modified XML back into .docx
     zip.file("word/document.xml", docXml);
 
-    // **If an image is uploaded, insert it inside a table cell**
+    // If an image is uploaded, insert it properly
     if (imageFile) {
         let imageBase64 = await toBase64(imageFile);
-        let imgData = imageBase64.split(",")[1]; // Remove the `data:image/png;base64,` prefix
+        let imgData = imageBase64.split(",")[1]; // Remove base64 prefix
 
-        // **Embed the image inside word/media**
-        let imageFileName = "word/media/uploadedImage.png";
-        zip.file(imageFileName, imgData, { base64: true });
+        // Store the image inside "word/media/"
+        zip.file("word/media/uploadedImage.png", imgData, { base64: true });
 
-        // **Create a new relationship in document.xml.rels**
+        // Modify relationships (.rels file) properly
         let relsXml = await zip.file("word/_rels/document.xml.rels").async("string");
-        let newRelId = `rId${Date.now()}`; // Unique ID for the new image
+        let newRelId = `rId${Date.now()}`;
         let imageRel = `
             <Relationship Id="${newRelId}" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/image" Target="media/uploadedImage.png"/>`;
         relsXml = relsXml.replace("</Relationships>", `${imageRel}</Relationships>`);
         zip.file("word/_rels/document.xml.rels", relsXml);
 
-        // **Insert the image inside the correct table cell**
-        let imageTag = `<w:tc>
-            <w:p><w:r><w:drawing><wp:inline><wp:extent cx="5000000" cy="5000000"/>
-                <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
-                    <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
-                        <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
-                            <pic:blipFill><a:blip r:embed="${newRelId}"/></pic:blipFill>
-                        </pic:pic>
-                    </a:graphicData>
-                </a:graphic>
-            </wp:inline></w:drawing></w:r></w:p>
-        </w:tc>`;
+        // Insert the image in a valid table cell inside `document.xml`
+        let imageTag = `
+            <w:p>
+                <w:r>
+                    <w:drawing>
+                        <wp:inline>
+                            <wp:extent cx="5000000" cy="5000000"/>
+                            <a:graphic xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+                                <a:graphicData uri="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                                    <pic:pic xmlns:pic="http://schemas.openxmlformats.org/drawingml/2006/picture">
+                                        <pic:blipFill><a:blip r:embed="${newRelId}"/></pic:blipFill>
+                                    </pic:pic>
+                                </a:graphicData>
+                            </a:graphic>
+                        </wp:inline>
+                    </w:drawing>
+                </w:r>
+            </w:p>`;
 
-        // **Insert image after the "Photographs/ CCTV Footage" table row**
-        docXml = docXml.replace("</w:tr>", `${imageTag}</w:tr>`);
+        // Ensure the image is added **inside the correct table cell**
+        docXml = docXml.replace("{{PHOTOGRAPHS_CCTV_FOOTAGE}}", imageTag);
         zip.file("word/document.xml", docXml);
     }
 
-    // Generate and download the modified .docx file
+    // Generate and download the final `.docx` file
     let modifiedBlob = await zip.generateAsync({ type: "blob" });
     let downloadUrl = URL.createObjectURL(modifiedBlob);
 
