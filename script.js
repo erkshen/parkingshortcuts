@@ -1,12 +1,6 @@
 async function generateWord() {
-    if (!window.docx) {
-        alert("docx library failed to load.");
-        return;
-    }
-    
     let inputData = document.getElementById("excelData").value.trim();
     let author = document.getElementById("author").value.trim() || "Unknown Author";
-    let imageElement = document.getElementById("previewImage");
     let imageFile = document.getElementById("imageUpload").files[0];
 
     if (!inputData) {
@@ -14,54 +8,33 @@ async function generateWord() {
         return;
     }
 
-    // Split input by tab (Excel uses tabs when copying multiple cells)
     let rowData = inputData.split("\t");
+    let fileName = rowData[0].replace(/[^a-zA-Z0-9]/g, "_") || "High_Risk_Manoeuvre_Report";
 
-    // Set filename based on first cell
-    let fileName = rowData[0].replace(/[^a-zA-Z0-9]/g, "_") || "ExcelRowTable";
-
-    // Placeholder names for first column
     const placeholders = [
-        "Description", "Entry Date and Time", "Entry Gate", "Exit Date and Time", "Exit Gate",
-        "Fee Due", "Paid Amount", "Repeat Offender", "Report Author", "Supporting Images",
-        "Name", "Vehicle Details", "Contact", "Store Name"
+        "Property", "Description", "Date & Time of Entry", "Entry Gate",
+        "Date & Time of Exit", "Exit Gate", "Parking Fee", "Parking Fee Paid",
+        "Serial Offender", "Report Author", "Photographs/ CCTV Footage",
+        "Offender Name", "Contact Details", "Vehicle Details", "Store Name"
     ];
 
-    // Ensure placeholders cover all fields
     while (placeholders.length < rowData.length) {
         placeholders.push(`Field ${placeholders.length + 1}`);
     }
 
-    // Separate last 4 rows
-    let mainTableRows = rowData.slice(0, -4);
-    let lastFourRows = rowData.slice(-4);
+    const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, ImageRun } = window.docx;
 
-    // Import docx library
-    const { Document, Packer, Paragraph, Table, TableRow, TableCell, TextRun, WidthType, AlignmentType, ImageRun } = window.docx;
-
-    // Function to create a table row
     function createRow(label, value) {
         return new TableRow({
             children: [
-                new TableCell({
-                    children: [new Paragraph(label)],
-                    width: { size: 40, type: WidthType.PERCENTAGE }
-                }),
-                new TableCell({
-                    children: [new Paragraph(value)],
-                    width: { size: 60, type: WidthType.PERCENTAGE }
-                })
+                new TableCell({ children: [new Paragraph(label)] }),
+                new TableCell({ children: [new Paragraph(value)] })
             ]
         });
     }
 
-    // Create main table rows
-    let tableRows = [
-        createRow("Author", author),
-        ...mainTableRows.map((data, index) => createRow(placeholders[index], data))
-    ];
+    let tableRows = rowData.map((data, index) => createRow(placeholders[index], data));
 
-    // Load image as base64 if provided
     let imageBase64 = null;
     if (imageFile) {
         imageBase64 = await toBase64(imageFile);
@@ -69,7 +42,7 @@ async function generateWord() {
             children: [
                 new TableCell({ children: [new Paragraph("Uploaded Image")] }),
                 new TableCell({
-                    children: [new Paragraph(" "), new ImageRun({
+                    children: [new ImageRun({
                         data: imageBase64,
                         transformation: { width: 300, height: 150 }
                     })]
@@ -78,31 +51,15 @@ async function generateWord() {
         }));
     }
 
-    // Create the additional table for last 4 rows
-    let additionalTableRows = lastFourRows.map((data, index) => createRow(placeholders[mainTableRows.length + index], data));
-
-    // Create the document
     const doc = new Document({
-        sections: [
-            {
-                children: [
-                    new Paragraph({ text: "Main Data", heading: window.docx.HeadingLevel.HEADING_2 }),
-                    new Table({
-                        rows: tableRows,
-                        width: { size: 100, type: WidthType.PERCENTAGE }
-                    }),
-                    new Paragraph({ text: " " }), // Spacer
-                    new Paragraph({ text: "Additional Information", heading: window.docx.HeadingLevel.HEADING_2 }),
-                    new Table({
-                        rows: additionalTableRows,
-                        width: { size: 100, type: WidthType.PERCENTAGE }
-                    })
-                ]
-            }
-        ]
+        sections: [{
+            children: [
+                new Paragraph({ text: "HIGH RISK MANOEUVRE REPORT", heading: window.docx.HeadingLevel.HEADING_1 }),
+                new Table({ rows: tableRows })
+            ]
+        }]
     });
 
-    // Generate and download the document
     Packer.toBlob(doc).then(blob => {
         let url = URL.createObjectURL(blob);
         let link = document.createElement("a");
@@ -114,7 +71,6 @@ async function generateWord() {
     });
 }
 
-// Convert image file to base64
 function toBase64(file) {
     return new Promise((resolve, reject) => {
         let reader = new FileReader();
