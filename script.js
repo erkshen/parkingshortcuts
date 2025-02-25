@@ -1,4 +1,4 @@
-// script.js
+// script.js - Updated for DocxTemplater
 async function generateWord() {
     try {
         // Get input values
@@ -18,27 +18,61 @@ async function generateWord() {
         
         // Load the template document
         const templateUrl = 'High Risk Manoeuvre Template.docx';
-        const templateArrayBuffer = await fetch(templateUrl).then(res => {
-            if (!res.ok) throw new Error('Failed to load template document. Make sure the template file is in the correct location.');
-            return res.arrayBuffer();
-        });
+        const arrayBuffer = await loadFile(templateUrl);
+        
+        if (!arrayBuffer) {
+            throw new Error('Failed to load template document. Make sure the template file is in the correct location.');
+        }
         
         // Prepare data for template replacement
         const patchData = preparePatchData(rowData, authorName, imageData);
         
-        // Create a new document from the template
-        const doc = await docx.TemplateHandler.process(templateArrayBuffer, patchData);
+        // Create a zip of the docx template
+        const zip = new PizZip(arrayBuffer);
         
-        // Generate the document
-        const blob = await docx.Packer.toBlob(doc);
+        // Create a new DocxTemplater instance
+        const doc = new window.docxtemplater();
+        
+        // Load the document
+        doc.loadZip(zip);
+        
+        // Set the template variables
+        doc.setData(patchData);
+        
+        try {
+            // Render the document (replace all variables with their values)
+            doc.render();
+        } catch (error) {
+            console.error('Error rendering document:', error);
+            throw error;
+        }
+        
+        // Generate the output
+        const output = doc.getZip().generate({
+            type: 'blob',
+            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        });
         
         // Save the document using FileSaver.js
-        saveAs(blob, `High_Risk_Report_${formatDate(new Date())}.docx`);
+        saveAs(output, `High_Risk_Report_${formatDate(new Date())}.docx`);
         
     } catch (error) {
         console.error('Error generating document:', error);
         alert('Error generating document: ' + error.message);
     }
+}
+
+// Function to load the template file
+function loadFile(url) {
+    return new Promise((resolve, reject) => {
+        PizZipUtils.getBinaryContent(url, (error, content) => {
+            if (error) {
+                reject(error);
+            } else {
+                resolve(content);
+            }
+        });
+    });
 }
 
 function parseExcelData(excelText) {
@@ -119,12 +153,7 @@ function preparePatchData(rowData, author, imageData) {
     
     // Handle image if available
     if (imageData) {
-        patchData.images = {
-            type: 'image',
-            data: imageData,
-            width: 400,
-            height: 300
-        };
+        patchData.images = imageData;
     } else {
         patchData.images = 'None available';
     }
@@ -138,9 +167,3 @@ function formatDate(date) {
     const year = date.getFullYear();
     return `${day}-${month}-${year}`;
 }
-
-// Add event listeners for the dropzone functionality
-document.addEventListener('DOMContentLoaded', function() {
-    // All your existing drag and drop code is already in the HTML
-    // This ensures the function is available when called from the button
-});
