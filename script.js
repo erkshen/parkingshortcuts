@@ -1,4 +1,4 @@
-// script.js - Updated for DocxTemplater
+// script.js - Fixed for DocxTemplater
 async function generateWord() {
     try {
         // Get input values
@@ -18,43 +18,54 @@ async function generateWord() {
         
         // Load the template document
         const templateUrl = 'High Risk Manoeuvre Template.docx';
-        const arrayBuffer = await loadFile(templateUrl);
-        
-        if (!arrayBuffer) {
-            throw new Error('Failed to load template document. Make sure the template file is in the correct location.');
-        }
-        
-        // Prepare data for template replacement
-        const patchData = preparePatchData(rowData, authorName, imageData);
-        
-        // Create a zip of the docx template
-        const zip = new PizZip(arrayBuffer);
-        
-        // Create a new DocxTemplater instance
-        const doc = new window.docxtemplater();
-        
-        // Load the document
-        doc.loadZip(zip);
-        
-        // Set the template variables
-        doc.setData(patchData);
         
         try {
-            // Render the document (replace all variables with their values)
+            const arrayBuffer = await loadFile(templateUrl);
+            
+            if (!arrayBuffer) {
+                throw new Error('Failed to load template document');
+            }
+            
+            // Prepare data for template replacement
+            const patchData = preparePatchData(rowData, authorName, imageData);
+            
+            // Create a zip of the docx template
+            const zip = new PizZip(arrayBuffer);
+            
+            // Create a new DocxTemplater instance
+            const doc = new window.docxtemplater();
+            
+            // Configure document
+            doc.loadZip(zip);
+            
+            // Set the data to be injected
+            doc.setData(patchData);
+            
+            // Perform the template substitution
             doc.render();
+            
+            // Generate output
+            const output = doc.getZip().generate({
+                type: 'blob',
+                mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            });
+            
+            // Save the document
+            saveAs(output, `High_Risk_Report_${formatDate(new Date())}.docx`);
+            
         } catch (error) {
-            console.error('Error rendering document:', error);
-            throw error;
+            if (error.properties && error.properties.errors) {
+                const errorMessages = error.properties.errors.map(error => {
+                    return `Error in template: ${error}`;
+                }).join("\n");
+                
+                console.error("Template errors:", errorMessages);
+                alert("Template errors: " + errorMessages);
+            } else {
+                console.error("Error:", error);
+                alert("Error: " + error.message);
+            }
         }
-        
-        // Generate the output
-        const output = doc.getZip().generate({
-            type: 'blob',
-            mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        });
-        
-        // Save the document using FileSaver.js
-        saveAs(output, `High_Risk_Report_${formatDate(new Date())}.docx`);
         
     } catch (error) {
         console.error('Error generating document:', error);
@@ -65,13 +76,24 @@ async function generateWord() {
 // Function to load the template file
 function loadFile(url) {
     return new Promise((resolve, reject) => {
-        PizZipUtils.getBinaryContent(url, (error, content) => {
-            if (error) {
-                reject(error);
+        // Use raw XMLHttpRequest for better error handling
+        const xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.responseType = 'arraybuffer';
+        
+        xhr.onload = function() {
+            if (xhr.status === 200) {
+                resolve(xhr.response);
             } else {
-                resolve(content);
+                reject(new Error(`Failed to load ${url}: ${xhr.status} ${xhr.statusText}`));
             }
-        });
+        };
+        
+        xhr.onerror = function() {
+            reject(new Error(`Network error while loading ${url}`));
+        };
+        
+        xhr.send();
     });
 }
 
@@ -123,7 +145,8 @@ function preparePatchData(rowData, author, imageData) {
         offender_name: '',
         offender_contact: '',
         offender_vehicle: '',
-        offender_store: ''
+        offender_store: '',
+        images: 'None available'  // Default value for images
     };
     
     // Map Excel data to template fields
@@ -151,12 +174,22 @@ function preparePatchData(rowData, author, imageData) {
         }
     });
     
-    // Handle image if available
+    // Handle image if available - but note that images require a special module in DocxTemplater
+    // This provides a basic text fallback
     if (imageData) {
-        patchData.images = imageData;
-    } else {
-        patchData.images = 'None available';
+        // For now, we're just indicating an image was provided
+        // To actually embed images, you would need the docxtemplater-image-module
+        patchData.images = "Image provided (requires image module)";
     }
+    
+    // Ensure all values are strings to prevent template errors
+    Object.keys(patchData).forEach(key => {
+        if (patchData[key] === null || patchData[key] === undefined) {
+            patchData[key] = '';
+        } else {
+            patchData[key] = String(patchData[key]);
+        }
+    });
     
     return patchData;
 }
