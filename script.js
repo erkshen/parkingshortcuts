@@ -32,21 +32,42 @@ async function generateWord() {
                 imageModule = new ImageModule({
                     centered: false,
                     fileType: "docx",
-                    getImage: function(tagValue) {
-                        // Convert data URL to array buffer for the image
-                        return dataURLtoArrayBuffer(tagValue);
+                    getImage(tagValue) {
+                        // In this case tagValue will be a URL tagValue = "https://docxtemplater.com/puffin.png"
+                        return new Promise(function (resolve, reject) {
+                            PizZipUtils.getBinaryContent(
+                                tagValue,
+                                function (error, content) {
+                                    if (error) {
+                                        return reject(error);
+                                    }
+                                    return resolve(content);
+                                }
+                            );
+                        });
                     },
-                    getSize: function(img, tagValue) {
-                        // This will use the original image size
-                        // First create an image to get its dimensions
-                        return new Promise((resolve) => {
+                    getSize(img, tagValue, tagName) {
+                        return new Promise(function (resolve, reject) {
                             const image = new Image();
-                            image.onload = function() {
+                            image.src = tagValue;
+                            image.onload = function () {
                                 resolve([image.width, image.height]);
                             };
-                            image.src = tagValue;
+                            image.onerror = function (e) {
+                                console.log(
+                                    "img, tagValue, tagName : ",
+                                    img,
+                                    tagValue,
+                                    tagName
+                                );
+                                alert(
+                                    "An error occured while loading " +
+                                        tagValue
+                                );
+                                reject(e);
+                            };
                         });
-                    }
+                    },
                 });
             }
             
@@ -84,7 +105,7 @@ async function generateWord() {
             });
             
             // Save the document
-            saveAs(output, `High_Risk_Report_${formatDate(new Date())}.docx`);
+            saveAs(output, `${rowData[1]}.docx`);
             
         } catch (error) {
             if (error.properties && error.properties.errors) {
