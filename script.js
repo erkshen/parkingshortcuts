@@ -1,4 +1,4 @@
-// script.js - Fixed for DocxTemplater
+// script.js - With Image Module Support
 async function generateWord() {
     try {
         // Get input values
@@ -13,7 +13,7 @@ async function generateWord() {
             return;
         }
         
-        // Parse Excel data (assuming tab or comma separated values)
+        // Parse Excel data
         const rowData = parseExcelData(excelDataText);
         
         // Load the template document
@@ -25,6 +25,30 @@ async function generateWord() {
             if (!arrayBuffer) {
                 throw new Error('Failed to load template document');
             }
+
+            // Configure the image module (if image is available)
+            let imageModule = null;
+            if (imageData) {
+                imageModule = new ImageModule({
+                    centered: false,
+                    fileType: "docx",
+                    getImage: function(tagValue) {
+                        // Convert data URL to array buffer for the image
+                        return dataURLtoArrayBuffer(tagValue);
+                    },
+                    getSize: function(img, tagValue) {
+                        // This will use the original image size
+                        // First create an image to get its dimensions
+                        return new Promise((resolve) => {
+                            const image = new Image();
+                            image.onload = function() {
+                                resolve([image.width, image.height]);
+                            };
+                            image.src = tagValue;
+                        });
+                    }
+                });
+            }
             
             // Prepare data for template replacement
             const patchData = preparePatchData(rowData, authorName, imageData);
@@ -32,11 +56,20 @@ async function generateWord() {
             // Create a zip of the docx template
             const zip = new PizZip(arrayBuffer);
             
-            // Create a new DocxTemplater instance
+            // Create a new DocxTemplater instance with the image module
             const doc = new window.docxtemplater();
+            
+            // Attach the image module if available
+            if (imageModule) {
+                doc.attachModule(imageModule);
+            }
             
             // Configure document
             doc.loadZip(zip);
+            doc.setOptions({
+                paragraphLoop: true,
+                linebreaks: true
+            });
             
             // Set the data to be injected
             doc.setData(patchData);
@@ -73,10 +106,30 @@ async function generateWord() {
     }
 }
 
-// Function to load the template file
+// Function to convert data URL to array buffer
+function dataURLtoArrayBuffer(dataURL) {
+    // Skip if no dataURL
+    if (!dataURL || !dataURL.startsWith('data:')) {
+        return null;
+    }
+    
+    // Remove the data URL prefix
+    const base64 = dataURL.split(',')[1];
+    const binary = atob(base64);
+    const len = binary.length;
+    const buffer = new ArrayBuffer(len);
+    const view = new Uint8Array(buffer);
+    
+    for (let i = 0; i < len; i++) {
+        view[i] = binary.charCodeAt(i);
+    }
+    
+    return buffer;
+}
+
+// Your existing functions (loadFile, parseExcelData, formatDate)
 function loadFile(url) {
     return new Promise((resolve, reject) => {
-        // Use raw XMLHttpRequest for better error handling
         const xhr = new XMLHttpRequest();
         xhr.open('GET', url, true);
         xhr.responseType = 'arraybuffer';
@@ -98,29 +151,11 @@ function loadFile(url) {
 }
 
 function parseExcelData(excelText) {
-    // Try to determine the delimiter (tab or comma)
-    const delimiter = excelText.includes('\t') ? '\t' : ',';
-    
-    // Split the data into rows
-    const rows = excelText.split('\n').filter(row => row.trim());
-    
-    // Assuming the first row contains headers
-    const headers = rows[0].split(delimiter).map(header => header.trim());
-    
-    // Get the data row (assuming single row paste)
-    const dataValues = rows.length > 1 ? 
-        rows[1].split(delimiter).map(value => value.trim()) : 
-        rows[0].split(delimiter).map(value => value.trim());
-    
-    // Create an object mapping headers to values
-    const data = {};
-    headers.forEach((header, index) => {
-        if (index < dataValues.length) {
-            data[header] = dataValues[index];
-        }
+    const rows = excelText.split('\t').map(function(item) {
+        return item.trim();
     });
-    
-    return data;
+    console.log(rows);
+    return rows;
 }
 
 function preparePatchData(rowData, author, imageData) {
@@ -133,60 +168,33 @@ function preparePatchData(rowData, author, imageData) {
     
     // Initialize patch data with default values
     const patchData = {
-        description: '',
-        entry_time: '',
-        entry_gate: '',
-        exit_time: '',
-        exit_gate: '',
-        fee: '',
-        paid_amt: '',
-        serial: 'No',
+        description: rowData[2] || '',
+        entry_time: rowData[3] || '',
+        entry_gate: rowData[4] || '',
+        exit_time: rowData[5] || '',
+        exit_gate: rowData[6] || '',
+        fee: rowData[8] || '',
+        paid_amt: '$0',
+        serial: rowData[9] || 'No',
         author: author || 'Not Specified',
-        offender_name: '',
-        offender_contact: '',
-        offender_vehicle: '',
-        offender_store: '',
-        images: 'None available'  // Default value for images
+        offender_name: rowData[10] || '',
+        offender_contact: rowData[11] || '',
+        offender_vehicle: rowData[12] || '',
+        offender_store: rowData[13] || '',
     };
     
-    // Map Excel data to template fields
-    // First try direct mapping (exact field names)
-    Object.keys(rowData).forEach(key => {
-        // Check if the key matches any template field directly
-        if (templateFields.includes(key.toLowerCase())) {
-            patchData[key.toLowerCase()] = rowData[key];
-        }
-        // Try to match common variations of field names
-        else {
-            // Try to map based on partial matches
-            if (key.toLowerCase().includes('desc')) patchData.description = rowData[key];
-            else if (key.toLowerCase().includes('entry') && key.toLowerCase().includes('time')) patchData.entry_time = rowData[key];
-            else if (key.toLowerCase().includes('entry') && key.toLowerCase().includes('gate')) patchData.entry_gate = rowData[key];
-            else if (key.toLowerCase().includes('exit') && key.toLowerCase().includes('time')) patchData.exit_time = rowData[key];
-            else if (key.toLowerCase().includes('exit') && key.toLowerCase().includes('gate')) patchData.exit_gate = rowData[key];
-            else if (key.toLowerCase().includes('fee') && !key.toLowerCase().includes('paid')) patchData.fee = rowData[key];
-            else if (key.toLowerCase().includes('paid')) patchData.paid_amt = rowData[key];
-            else if (key.toLowerCase().includes('serial') || key.toLowerCase().includes('offender')) patchData.serial = rowData[key];
-            else if (key.toLowerCase().includes('name')) patchData.offender_name = rowData[key];
-            else if (key.toLowerCase().includes('contact')) patchData.offender_contact = rowData[key];
-            else if (key.toLowerCase().includes('vehicle')) patchData.offender_vehicle = rowData[key];
-            else if (key.toLowerCase().includes('store')) patchData.offender_store = rowData[key];
-        }
-    });
-    
-    // Handle image if available - but note that images require a special module in DocxTemplater
-    // This provides a basic text fallback
+    // Handle image if available
     if (imageData) {
-        // For now, we're just indicating an image was provided
-        // To actually embed images, you would need the docxtemplater-image-module
-        patchData.images = "Image provided (requires image module)";
+        patchData.images = imageData; // Pass the actual image data (data URL)
+    } else {
+        patchData.images = ''; // Empty string if no image
     }
     
     // Ensure all values are strings to prevent template errors
     Object.keys(patchData).forEach(key => {
         if (patchData[key] === null || patchData[key] === undefined) {
             patchData[key] = '';
-        } else {
+        } else if (key !== 'images') { // Don't convert image data to string
             patchData[key] = String(patchData[key]);
         }
     });
