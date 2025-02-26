@@ -97,11 +97,6 @@ async function generateWord() {
             
             // Perform the template substitution
             doc.render();
-
-            // render image
-            doc.render({
-                images: imageData
-            });
             
             // Generate output
             const output = doc.getZip().generate({
@@ -185,13 +180,6 @@ function parseExcelData(excelText) {
 }
 
 function preparePatchData(rowData, author, imageData) {
-    // Define template fields based on the document structure
-    const templateFields = [
-        'description', 'entry_time', 'entry_gate', 'exit_time', 'exit_gate',
-        'fee', 'paid_amt', 'serial', 'offender_name', 'offender_contact',
-        'offender_vehicle', 'offender_store'
-    ];
-    
     // Initialize patch data with default values
     const patchData = {
         description: rowData[2] || '',
