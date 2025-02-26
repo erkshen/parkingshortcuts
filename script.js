@@ -18,108 +18,84 @@ async function generateWord() {
         
         // Load the template document
         const templateUrl = 'High Risk Manoeuvre Template.docx';
-        
-        try {
-            const arrayBuffer = await loadFile(templateUrl);
-            
-            if (!arrayBuffer) {
-                throw new Error('Failed to load template document');
-            }
 
-            // Configure the image module (if image is available)
-            let imageModule = null;
-            if (imageData) {
-                imageModule = new ImageModule({
-                    centered: false,
-                    fileType: "docx",
-                    getImage(tagValue) {
-                        // In this case tagValue will be a URL tagValue = "https://docxtemplater.com/puffin.png"
-                        return new Promise(function (resolve, reject) {
-                            PizZipUtils.getBinaryContent(
-                                tagValue,
-                                function (error, content) {
-                                    if (error) {
-                                        return reject(error);
-                                    }
-                                    return resolve(content);
-                                }
-                            );
-                        });
-                    },
-                    getSize(img, tagValue, tagName) {
-                        return new Promise(function (resolve, reject) {
-                            const image = new Image();
-                            image.src = tagValue;
-                            image.onload = function () {
-                                resolve([image.width, image.height]);
-                            };
-                            image.onerror = function (e) {
-                                console.log(
-                                    "img, tagValue, tagName : ",
-                                    img,
-                                    tagValue,
-                                    tagName
-                                );
-                                alert(
-                                    "An error occured while loading " +
-                                        tagValue
-                                );
-                                reject(e);
-                            };
-                        });
-                    },
+        const imageOptions = {
+            getImage(tagValue) {
+                // In this case tagValue will be a URL tagValue = "https://docxtemplater.com/puffin.png"
+                return new Promise(function (resolve, reject) {
+                    PizZipUtils.getBinaryContent(
+                        tagValue,
+                        function (error, content) {
+                            if (error) {
+                                return reject(error);
+                            }
+                            return resolve(content);
+                        }
+                    );
+                });
+            },
+            getSize(img, tagValue, tagName) {
+                return new Promise(function (resolve, reject) {
+                    const image = new Image();
+                    image.src = tagValue;
+                    image.onload = function () {
+                        resolve([image.width, image.height]);
+                    };
+                    image.onerror = function (e) {
+                        console.log(
+                            "img, tagValue, tagName : ",
+                            img,
+                            tagValue,
+                            tagName
+                        );
+                        alert(
+                            "An error occured while loading " +
+                                tagValue
+                        );
+                        reject(e);
+                    };
+                });
+            },
+        };
+
+        const docxType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+        PizZipUtils.getBinaryContent(
+            templateUrl,
+            function (error, content) {
+                if (error) {
+                    console.error(error);
+                    return;
+                }
+
+                const zip = new PizZip(content);
+                const doc = new docxtemplater(zip, {
+                    modules: [new ImageModule(imageOptions)],
+                });
+
+                doc.renderAsync({
+                    description: rowData[2],
+                    entry_time: rowData[3],
+                    entry_gate: rowData[4],
+                    exit_time: rowData[5],
+                    exit_gate: rowData[6],
+                    fee: rowData[8],
+                    paid_amt: '$0',
+                    serial: rowData[9] || 'No',
+                    author: author || 'Not Specified',
+                    offender_name: rowData[10],
+                    offender_contact: rowData[11],
+                    offender_vehicle: rowData[12],
+                    offender_store: rowData[13],
+                    images: "",
+                }).then(function () {
+                    const out = doc.getZip().generate({
+                        type: "blob",
+                        mimeType: docxType,
+                    });
+                    saveAs(out, `${rowData[1]}.docx`);
                 });
             }
-            
-            // Prepare data for template replacement
-            const patchData = preparePatchData(rowData, authorName, imageData);
-            
-            // Create a zip of the docx template
-            const zip = new PizZip(arrayBuffer);
-            
-            // Create a new DocxTemplater instance with the image module
-            const doc = new window.docxtemplater();
-            
-            // Attach the image module if available
-            if (imageModule) {
-                doc.attachModule(imageModule);
-            }
-            
-            // Configure document
-            doc.loadZip(zip);
-            doc.setOptions({
-                paragraphLoop: true,
-                linebreaks: true
-            });
-            
-            // Set the data to be injected
-            doc.setData(patchData);
-            
-            // Perform the template substitution
-            doc.render();
-            
-            // Generate output
-            const output = doc.getZip().generate({
-                type: 'blob',
-                mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            });
-            
-            // Save the document
-            saveAs(output, `${rowData[1]}.docx`);
-            
-        } catch (error) {
-            if (error.properties && error.properties.errors) {
-                const errorMessages = error.properties.errors.map(error => {
-                    return `Error in template: ${error}`;
-                }).join("\n");
-                
-                console.error("Template errors:", errorMessages);
-                alert("Template errors: " + errorMessages);
-            } else {
-                console.error("Error:", error);
-                alert("Error: " + error.message);
-            }
-        }
+        );
         
     } catch (error) {
         console.error('Error generating document:', error);
