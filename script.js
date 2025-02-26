@@ -96,7 +96,12 @@ async function generateWord() {
             doc.setData(patchData);
             
             // Perform the template substitution
-            doc.renderAsync();
+            doc.render();
+
+            // render image
+            doc.render({
+                images: imageData
+            });
             
             // Generate output
             const output = doc.getZip().generate({
