@@ -2,7 +2,7 @@
 async function generateWord() {
     try {
         // Get input values
-        const authorName = document.getElementById('author').value.trim();
+        // const authorName = document.getElementById('author').value.trim();
         const excelDataText = document.getElementById('excelData').value.trim();
         //const imageElement = document.getElementById('previewImage');
         //const imageData = imageElement.hidden ? null : imageElement.src;
@@ -112,37 +112,6 @@ function parseExcelData(excelText) {
     });
     console.log(rows);
     return rows;
-}
-
-function preparePatchData(rowData, author, imageData) {
-    // Initialize patch data with default values
-    const patchData = {
-        description: rowData[2] || '',
-        entry_time: rowData[3] || '',
-        entry_gate: rowData[4] || '',
-        exit_time: rowData[5] || '',
-        exit_gate: rowData[6] || '',
-        fee: rowData[8] || '',
-        paid_amt: '$0',
-        serial: rowData[9] || 'No',
-        author: author || 'Not Specified',
-        offender_name: rowData[10] || '',
-        offender_contact: rowData[11] || '',
-        offender_vehicle: rowData[12] || '',
-        offender_store: rowData[13] || '',
-    };
-    
-    
-    // Ensure all values are strings to prevent template errors
-    Object.keys(patchData).forEach(key => {
-        if (patchData[key] === null || patchData[key] === undefined) {
-            patchData[key] = '';
-        } else if (key !== 'images') { // Don't convert image data to string
-            patchData[key] = String(patchData[key]);
-        }
-    });
-    
-    return patchData;
 }
 
 function formatDate(date) {
