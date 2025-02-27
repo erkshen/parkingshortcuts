@@ -18,47 +18,7 @@ async function generateWord() {
         
         // Load the template document
         const templateUrl = 'High Risk Manoeuvre Template.docx';
-
-        /*
-        const imageOptions = {
-            getImage(tagValue) {
-                // In this case tagValue will be a URL tagValue = "https://docxtemplater.com/puffin.png"
-                return new Promise(function (resolve, reject) {
-                    PizZipUtils.getBinaryContent(
-                        tagValue,
-                        function (error, content) {
-                            if (error) {
-                                return reject(error);
-                            }
-                            return resolve(content);
-                        }
-                    );
-                });
-            },
-            getSize(img, tagValue, tagName) {
-                return new Promise(function (resolve, reject) {
-                    const image = new Image();
-                    image.src = tagValue;
-                    image.onload = function () {
-                        resolve([image.width, image.height]);
-                    };
-                    image.onerror = function (e) {
-                        console.log(
-                            "img, tagValue, tagName : ",
-                            img,
-                            tagValue,
-                            tagName
-                        );
-                        alert(
-                            "An error occured while loading " +
-                                tagValue
-                        );
-                        reject(e);
-                    };
-                });
-            },
-        };
-        */
+        
         const docxType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
         PizZipUtils.getBinaryContent(
             templateUrl,
@@ -85,13 +45,14 @@ async function generateWord() {
                     offender_contact: rowData[11],
                     offender_vehicle: rowData[12],
                     offender_store: rowData[13],
-                }).then(function () {
-                    const out = doc.getZip().generate({
-                        type: "blob",
-                        mimeType: docxType,
-                    });
-                    saveAs(out, `${rowData[1]}.docx`);
                 });
+                
+                const out = doc.getZip().generate({
+                    type: "blob",
+                    mimeType: docxType,
+                });
+                saveAs(out, `${rowData[1]}.docx`);
+                
             }
         );
         
