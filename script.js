@@ -1,11 +1,8 @@
 // script.js - With Image Module Support
 async function generateWord() {
     try {
-        // Get input values
-        // const authorName = document.getElementById('author').value.trim(); deprecated
+        // Get excel data
         const excelDataText = document.getElementById('excelData').value.trim();
-        //const imageElement = document.getElementById('previewImage');
-        //const imageData = imageElement.hidden ? null : imageElement.src;
         
         // Validate inputs
         if (!excelDataText) {
@@ -64,50 +61,6 @@ async function generateWord() {
     }
 }
 
-// Function to convert data URL to array buffer
-function dataURLtoArrayBuffer(dataURL) {
-    // Skip if no dataURL
-    if (!dataURL || !dataURL.startsWith('data:')) {
-        return null;
-    }
-    
-    // Remove the data URL prefix
-    const base64 = dataURL.split(',')[1];
-    const binary = atob(base64);
-    const len = binary.length;
-    const buffer = new ArrayBuffer(len);
-    const view = new Uint8Array(buffer);
-    
-    for (let i = 0; i < len; i++) {
-        view[i] = binary.charCodeAt(i);
-    }
-    
-    return buffer;
-}
-
-// Your existing functions (loadFile, parseExcelData, formatDate)
-function loadFile(url) {
-    return new Promise((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        xhr.open('GET', url, true);
-        xhr.responseType = 'arraybuffer';
-        
-        xhr.onload = function() {
-            if (xhr.status === 200) {
-                resolve(xhr.response);
-            } else {
-                reject(new Error(`Failed to load ${url}: ${xhr.status} ${xhr.statusText}`));
-            }
-        };
-        
-        xhr.onerror = function() {
-            reject(new Error(`Network error while loading ${url}`));
-        };
-        
-        xhr.send();
-    });
-}
-
 function parseExcelData(excelText) {
 	// loop through rows to get individual cells in each row
     const rows = excelText.split('\n').map(function(row) {
@@ -118,11 +71,4 @@ function parseExcelData(excelText) {
     
     console.log(rows);
     return rows;
-}
-
-function formatDate(date) {
-    const day = date.getDate().toString().padStart(2, '0');
-    const month = (date.getMonth() + 1).toString().padStart(2, '0');
-    const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
 }
