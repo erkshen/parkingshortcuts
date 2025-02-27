@@ -4,8 +4,8 @@ async function generateWord() {
         // Get input values
         const authorName = document.getElementById('author').value.trim();
         const excelDataText = document.getElementById('excelData').value.trim();
-        const imageElement = document.getElementById('previewImage');
-        const imageData = imageElement.hidden ? null : imageElement.src;
+        //const imageElement = document.getElementById('previewImage');
+        //const imageData = imageElement.hidden ? null : imageElement.src;
         
         // Validate inputs
         if (!excelDataText) {
@@ -19,6 +19,7 @@ async function generateWord() {
         // Load the template document
         const templateUrl = 'High Risk Manoeuvre Template.docx';
 
+        /*
         const imageOptions = {
             getImage(tagValue) {
                 // In this case tagValue will be a URL tagValue = "https://docxtemplater.com/puffin.png"
@@ -57,7 +58,7 @@ async function generateWord() {
                 });
             },
         };
-
+        */
         const docxType = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
         PizZipUtils.getBinaryContent(
             templateUrl,
@@ -68,11 +69,9 @@ async function generateWord() {
                 }
 
                 const zip = new PizZip(content);
-                const doc = new docxtemplater(zip, {
-                    modules: [new ImageModule(imageOptions)],
-                });
+                const doc = new docxtemplater(zip);
 
-                doc.renderAsync({
+                doc.render({
                     description: rowData[2],
                     entry_time: rowData[3],
                     entry_gate: rowData[4],
@@ -86,7 +85,6 @@ async function generateWord() {
                     offender_contact: rowData[11],
                     offender_vehicle: rowData[12],
                     offender_store: rowData[13],
-                    images: "",
                 }).then(function () {
                     const out = doc.getZip().generate({
                         type: "blob",
@@ -173,12 +171,6 @@ function preparePatchData(rowData, author, imageData) {
         offender_store: rowData[13] || '',
     };
     
-    // Handle image if available
-    if (imageData) {
-        patchData.images = imageData; // Pass the actual image data (data URL)
-    } else {
-        patchData.images = ''; // Empty string if no image
-    }
     
     // Ensure all values are strings to prevent template errors
     Object.keys(patchData).forEach(key => {
