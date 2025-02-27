@@ -2,7 +2,7 @@
 async function generateWord() {
     try {
         // Get input values
-        // const authorName = document.getElementById('author').value.trim();
+        // const authorName = document.getElementById('author').value.trim(); deprecated
         const excelDataText = document.getElementById('excelData').value.trim();
         //const imageElement = document.getElementById('previewImage');
         //const imageData = imageElement.hidden ? null : imageElement.src;
