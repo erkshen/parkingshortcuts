@@ -40,7 +40,7 @@ async function generateWord() {
                     fee: rowData[8],
                     paid_amt: '$0',
                     serial: rowData[9] || 'No',
-                    author: author || 'Not Specified',
+                    author: rowData[15],
                     offender_name: rowData[10],
                     offender_contact: rowData[11],
                     offender_vehicle: rowData[12],
