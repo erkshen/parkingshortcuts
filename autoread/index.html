@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Autoread plates from parking.logic</title>
+    <!-- Updated library versions -->
+    <script src="https://unpkg.com/docxtemplater@3.31.2/build/docxtemplater.js"></script>
+    <script src="https://unpkg.com/pizzip@3.1.3/dist/pizzip.js"></script>
+    <script src="https://unpkg.com/pizzip@3.1.3/dist/pizzip-utils.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <script src="https://unpkg.com/docxtemplater-image-module-free@3.1.0/build/docxtemplater-image-module-free.js"></script>
+    <script src="script.js" defer></script>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin: 50px; }
+        textarea, input { width: 80%; margin: 10px; padding: 8px; font-size: 16px; }
+        button { padding: 10px 20px; font-size: 16px; cursor: pointer; background-color: #4CAF50; color: white; border: none; border-radius: 4px; }
+        button:hover { background-color: #45a049; }
+        .upload-area {
+            width: 80%; margin: 10px auto; padding: 20px;
+            border: 2px dashed #ccc; text-align: center; cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .upload-area:hover { background-color: #f5f5f5; }
+        .upload-area img { max-width: 100%; max-height: 150px; margin-top: 10px; }
+        h2, h3 { color: #333; }
+    </style>
+</head>
+<body>
+    <img src="https://raw.githubusercontent.com/erkshen/parkingshortcuts/951663f1927fff098cd69b334dc92c5e7ff557b6/pp.png">
+    <h2>Auto-read plates from parking.logic</h2>
+    
+    <h3>Upload Image (Drag & Drop or Click)</h3>
+    <div class="upload-area" id="uploadArea">
+        Drop an image here or click to upload
+        <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+        <img id="previewImage" src="" alt="" hidden>
+    </div>
+    
+    <button onclick="generatePlates()">Output Plates</button>
+    
+    <script>
+        // Image upload handling
+        document.addEventListener('DOMContentLoaded', function() {
+            const uploadArea = document.getElementById('uploadArea');
+            const imageUpload = document.getElementById('imageUpload');
+            const previewImage = document.getElementById('previewImage');
+            
+            // Click to upload
+            uploadArea.addEventListener('click', function() {
+                imageUpload.click();
+            });
+            
+            // Handle file selection
+            imageUpload.addEventListener('change', function(event) {
+                handleImageFile(event.target.files[0]);
+            });
+            
+            // Drag and drop functionality
+            uploadArea.addEventListener('dragover', function(event) {
+                event.preventDefault();
+                uploadArea.style.borderColor = '#4CAF50';
+            });
+            
+            uploadArea.addEventListener('dragleave', function() {
+                uploadArea.style.borderColor = '#ccc';
+            });
+            
+            uploadArea.addEventListener('drop', function(event) {
+                event.preventDefault();
+                uploadArea.style.borderColor = '#ccc';
+                handleImageFile(event.dataTransfer.files[0]);
+            });
+            
+            // Helper function to handle image files
+            function handleImageFile(file) {
+                if (file && file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewImage.src = e.target.result;
+                        previewImage.hidden = false;
+                    };
+                    reader.readAsDataURL(file);
+                }
+            }
+        });
+    </script>
+</body>
+</html>
