@@ -44,7 +44,12 @@
         
             for (const clipboardItem of e.clipboardData.files) {
                 if (clipboardItem.type.startsWith('image/')) {
-                    handleImageFile(clipboardItem);
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewImage.src = e.target.result;
+                        previewImage.hidden = false;
+                    };
+                    reader.readAsDataURL(clipboardItem);
                 }
             }
         });
