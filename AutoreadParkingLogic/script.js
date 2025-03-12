@@ -74,11 +74,10 @@ function parseExcelData(excelText) {
 }
 
 
-const { createWorker } = require('tesseract.js');
-
-const worker = await createWorker('eng');
-
-function read_text() {
+async function read_text() {
+	const { createWorker } = require('tesseract.js');
+	const worker = await createWorker('eng');
+	
 	(async () => {
 	  const { data: { text } } = await worker.recognize('https://tesseract.projectnaptha.com/img/eng_bw.png');
 	  console.log(text);
