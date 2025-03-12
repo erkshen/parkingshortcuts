@@ -38,7 +38,20 @@
     <button onclick="read_text()">Output Plates</button>
     
     <script>
+        // Paste functionality
+        document.addEventListener('paste', async (e) => {
+            e.preventDefault();
+        
+            for (const clipboardItem of e.clipboardData.files) {
+                if (clipboardItem.type.startsWith('image/')) {
+                    handleImageFile(clipboardItem);
+                }
+            }
+        });
+        
         // Image upload handling
+
+        
         document.addEventListener('DOMContentLoaded', function() {
             const uploadArea = document.getElementById('uploadArea');
             const imageUpload = document.getElementById('imageUpload');
