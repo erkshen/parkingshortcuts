@@ -68,7 +68,20 @@ function parseExcelData(excelText) {
         	return cell.trim();
         });
     });
-    
+	
     console.log(rows);
     return rows;
+}
+
+
+const { createWorker } = require('tesseract.js');
+
+const worker = await createWorker('eng');
+
+function read_text() {
+	(async () => {
+	  const { data: { text } } = await worker.recognize('https://tesseract.projectnaptha.com/img/eng_bw.png');
+	  console.log(text);
+	  await worker.terminate();
+	})();
 }
